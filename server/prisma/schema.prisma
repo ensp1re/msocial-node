@@ -1,0 +1,128 @@
+datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+model User {
+    id                String            @id @default(auto()) @map("_id") @db.ObjectId
+    username          String            @unique
+    nickname          String?
+    avatarUrl         String?
+    email             String?           @unique
+    emailVerified     String?
+    hashedPassword    String?
+    createdAt         DateTime          @default(now())
+    updatedAt         DateTime          @updatedAt
+    bio               String?
+    posts             Post[]
+    likes             Like[]
+    comments          Comment[]
+    bookmarks         Bookmark[]
+    reposts           Repost[]
+    followers         String[]          @map("followerId")
+    following         String[]          @map("followingId")
+    senderMessages    Message[]         @relation("MessageSender")
+    receiverMessages  Message[]         @relation("MessageReceiver")
+    relationSenders   MessageRelation[] @relation("MessageRelationSender")
+    relationReceivers MessageRelation[] @relation("MessageRelationReceiver")
+
+    notifySender   Notification[] @relation("NotificationSender")
+    notifyReceiver Notification[] @relation("NotificationReceiver")
+}
+
+model Post {
+    id        String     @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String     @db.ObjectId
+    user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    text      String?
+    imageUrl  String?
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+    likes     Like[]
+    comments  Comment[]
+    reposts   Repost[]
+    bookmarks Bookmark[]
+}
+
+model Like {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    postId    String   @db.ObjectId
+    userId    String   @db.ObjectId
+    createdAt DateTime @default(now())
+    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    userId    String   @db.ObjectId
+    postId    String   @db.ObjectId
+    text      String?
+    imageUrl  String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Bookmark {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    postId    String   @db.ObjectId
+    post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+    userId    String   @db.ObjectId
+    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+}
+
+model Repost {
+    id        String   @id @default(auto()) @map("_id") @db.ObjectId
+    postId    String   @db.ObjectId
+    post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+    userId    String   @db.ObjectId
+    user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+}
+
+model MessageRelation {
+    id         String    @id @default(auto()) @map("_id") @db.ObjectId
+    senderId   String?   @db.ObjectId
+    receiverId String?   @db.ObjectId
+    sender     User?     @relation("MessageRelationSender", fields: [senderId], references: [id])
+    receiver   User?     @relation("MessageRelationReceiver", fields: [receiverId], references: [id])
+    messages   Message[] @relation("MessageRelationMessages")
+    createdAt  DateTime  @default(now())
+    updatedAt  DateTime  @updatedAt
+    isRead     Boolean   @default(false)
+}
+
+model Message {
+    id         String           @id @default(auto()) @map("_id") @db.ObjectId
+    senderId   String?          @db.ObjectId
+    receiverId String?          @db.ObjectId
+    relationId String?          @db.ObjectId
+    relation   MessageRelation? @relation("MessageRelationMessages", fields: [relationId], references: [id])
+    sender     User?            @relation("MessageSender", fields: [senderId], references: [id])
+    receiver   User?            @relation("MessageReceiver", fields: [receiverId], references: [id])
+    text       String?
+    imageUrl   String?
+    createdAt  DateTime         @default(now())
+    updatedAt  DateTime         @updatedAt
+    isRead     Boolean          @default(false)
+}
+
+model Notification {
+    id         String   @id @default(auto()) @map("_id") @db.ObjectId
+    senderId   String?  @db.ObjectId
+    receiverId String?  @db.ObjectId
+    relationId String?  @db.ObjectId
+    sender     User?    @relation("NotificationSender", fields: [senderId], references: [id])
+    receiver   User?    @relation("NotificationReceiver", fields: [receiverId], references: [id])
+    text       String?
+    isSeen     Boolean @default(false)
+    createdAt  DateTime @default(now())
+    updatetAt  DateTime @updatedAt
+}
